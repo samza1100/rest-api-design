@@ -1,0 +1,129 @@
+# OpenAPI specification version
+openapi: 3.0.3
+
+# Basic API information
+info:
+  title: "Movie Theater Reservations API"
+  description: "An API for managing temporary seat reservations for a movie theater booking system. This service allows clients to create a new reservation (hold), retrieve its status, and cancel it."
+  version: "1.0.0"
+
+# Server endpoint definition
+servers:
+  - url: "https://api.movietheater.com/v1"
+    description: "Production Server"
+
+# API endpoint paths
+paths:
+  
+  # Create a new reservation
+  /reservations:
+    post:
+      summary: "Create a new seat reservation"
+      description: "Creates a temporary 10-minute hold on one or more seats for a specific showtime."
+      requestBody:
+        description: "The showtime and seats to be reserved."
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/NewReservationRequest"
+              
+      responses:
+        '201':
+          description: "Reservation created successfully. Returns the new reservation details."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        '400':
+          description: "Bad Request. One or more of the requested seats are already taken or do not exist."
+        '422':
+          description: "Unprocessable Entity. Invalid data provided (e.g., missing showtime_id)."
+
+  # Get or delete a specific reservation by its ID
+  /reservations/{reservation_id}:
+    
+    get:
+      summary: "Get reservation status"
+      description: "Retrieves the details of a specific reservation, including its status and expiration time."
+      parameters:
+        - name: "reservation_id"
+          in: "path"
+          description: "The unique ID of the reservation to retrieve."
+          required: true
+          schema:
+            type: "string"
+            example: "res_abc123"
+            
+      responses:
+        '200':
+          description: "OK. Returns the reservation object."
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Reservation"
+        '404':
+          description: "Not Found. No reservation was found with that ID."
+
+    delete:
+      summary: "Cancel a reservation"
+      description: "Deletes a reservation, freeing up the seats. This is used when a user cancels the booking or their 10-minute timer expires."
+      parameters:
+        - name: "reservation_id"
+          in: "path"
+          description: "The unique ID of the reservation to cancel."
+          required: true
+          schema:
+            type: "string"
+            example: "res_abc123"
+            
+      responses:
+        '204':
+          description: "No Content. The reservation was successfully deleted."
+        '404':
+          description: "Not Found. No reservation was found with that ID."
+        '500':
+          description: "Internal Server Error. An error occurred while trying to delete the reservation."
+
+# Reusable data models (schemas)
+components:
+  schemas:
+    
+    # Schema for the POST /reservations request body
+    NewReservationRequest:
+      type: "object"
+      properties:
+        showtime_id:
+          type: "string"
+          example: "show_xyz789"
+        seat_ids:
+          type: "array"
+          items:
+            type: "string"
+          example: ["F5", "F6"]
+      required:
+        - showtime_id
+        - seat_ids
+        
+    # Schema for the Reservation object (used in GET and POST responses)
+    Reservation:
+      type: "object"
+      properties:
+        reservation_id:
+          type: "string"
+          example: "res_abc123"
+        status:
+          type: "string"
+          example: "held"
+        showtime_id:
+          type: "string"
+          example: "show_xyz789"
+        seat_ids:
+          type: "array"
+          items:
+            type: "string"
+          example: ["F5", "F6"]
+        expires_at:
+          type: "string"
+          format: "date-time"
+          example: "2025-10-25T14:30:00Z"
